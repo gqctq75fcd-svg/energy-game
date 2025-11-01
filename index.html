@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Energy Day Game</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, sans-serif;
+    }
+
+    body {
+        background-color: #fdfdfb;
+        color: #222;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+    }
+
+    .game-shell {
+        width: 100%;
+        max-width: 420px;
+        min-height: 100vh;
+        background: #fffef9;
+        border: 2px solid #444;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .scene {
+        position: absolute;
+        inset: 0;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background-size: cover;
+        background-position: center;
+        transition: transform 0.4s ease;
+    }
+
+    .offscreen-right { transform: translateX(100%); }
+    .active { transform: translateX(0%); }
+    .offscreen-left { transform: translateX(-100%); }
+
+    .sketch-frame {
+        flex: 1;
+        border: 2px solid #444;
+        border-radius: 12px;
+        background-color: #fff;
+        position: relative;
+        padding: 12px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .bg-area {
+        flex: 1;
+        border: 2px dashed #777;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.8rem;
+        text-align: center;
+        padding: 8px;
+    }
+
+    .boy-area {
+        width: 40%;
+        min-width: 110px;
+        border: 2px dashed #222;
+        border-radius: 8px;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.8rem;
+        text-align: center;
+        padding: 8px;
+    }
+
+    .option-list-vertical {
+        position: absolute;
+        left: 8px;
+        top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 55%;
+    }
+
+    .option-box,
+    .option-dot-box {
+        border: 2px solid #222;
+        border-radius: 10px;
+        background-color: #fff;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        line-height: 1.2rem;
+        text-align: center;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .option-box:active,
+    .option-dot-box:active,
+    .main-button:active {
+        transform: scale(0.97);
+    }
+
+    .bulb-row {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .bulb-choice {
+        flex: 1;
+        border: 2px solid #222;
+        border-radius: 10px;
+        background-color: #fff;
+        padding: 8px;
+        text-align: center;
+        font-size: 0.8rem;
+        line-height: 1.2rem;
+        cursor: pointer;
+    }
+
+    .bulb-choice img {
+        width: 60px;
+        height: auto;
+    }
+
+    .charger-split {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .half-panel {
+        flex: 1;
+        border: 2px solid #222;
+        border-radius: 10px;
+        background-color: #fff;
+        padding: 8px;
+        font-size: 0.8rem;
+        line-height: 1.2rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+    }
+
+    .half-panel img {
+        width: 70px;
+        height: auto;
+        align-self: center;
+    }
+
+    .thought-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .thought-cloud {
+        width: 90%;
+        min-height: 55%;
+        border: 2px solid #222;
+        border-radius: 30px;
+        background-color: #fff;
+        padding: 12px;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        position: relative;
+    }
+
+    .transport-col {
+        flex: 1;
+        border: 2px dashed #777;
+        border-radius: 10px;
+        padding: 8px;
+        text-align: center;
+        font-size: 0.8rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .transport-col img {
+        width: 80px;
+        height: auto;
+        align-self: center;
+    }
+
+    .boy-small {
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 2px dashed #222;
+        border-radius: 8px;
+        background-color: #fff;
+        padding: 6px 10px;
+        font-size: 0.7rem;
+        text-align: center;
+        width: 110px;
+    }
+
+    .boy-small img {
+        width: 60px;
+        height: auto;
+    }
+
+    .summary-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .summary-card {
+        border: 2px solid #222;
+        border-radius: 10px;
+        background-color: #fff;
+        padding: 8px;
+        font-size: 0.8rem;
+        line-height: 1.1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: center;
+    }
+
+    .checkmark {
+        font-size: 1.4rem;
+        font-weight: bold;
+        line-height: 1.4rem;
+    }
+
+    .fact-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .fact-card {
+        border: 2px solid #222;
+        border-radius: 10px;
+        background-color: #fff;
+        padding: 10px;
+        font-size: 0.8rem;
+        line-height: 1.2rem;
+    }
+
+    .fact-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+        font-size: 0.8rem;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .fact-your-choice {
+        font-size: 0.75rem;
+        margin-top: 4px;
+    }
+
+    .fact-impact {
+        font-size: 0.75rem;
+        color: #444;
+        margin-top: 2px;
+        font-style: italic;
+    }
+
+    .ending-wrapper {
+        flex: 1;
+        border: 2px solid #222;
+        border-radius: 12px;
+        background-color: #fff;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        text-align: center;
+    }
+
+    .ending-boy {
+        border: 2px dashed #222;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 0.8rem;
+        max-width: 200px;
+        margin: 0 auto;
+    }
+
+    .ending-boy img {
+        width: 100px;
+        height: auto;
+    }
+
+    .ending-quote {
+        font-size: 0.9rem;
+        font-weight: 600;
+        line-height: 1.3rem;
+    }
+
+    .ending-sub {
+        font-size: 0.7rem;
+        color: #444;
+        margin-top: 6px;
+    }
+
+    .footer-bar {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .main-button {
+        width: 100%;
+        background-color: #fff;
+        border: 2px solid #222;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .inline-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .inline-buttons .main-button {
+        flex: 1;
+        font-size: 0.8rem;
+        padding: 10px;
+    }
+
+    .label-top {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+
+    .small-hint {
+        font-size: 0.7rem;
+        color: #555;
+        text-align: center;
+        margin-top: 4px;
+        line-height: 1rem;
+    }
+</style>
+</head>
+<body>
+
+<div class="game-shell">
+
+    <!-- SCENE 0 -->
+    <section class="scene active" id="scene-0">
+        <div class="sketch-frame">
+            <div class="bg-area">
+                <img src="img/boy_bed.png" style="max-width:100%;height:auto;" alt="Boy waking up in bed">
+            </div>
+            <div class="boy-area">
+                Still sleepy...
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <div class="small-hint">
+                “A new day. How much energy can you save?”
+            </div>
+            <div class="main-button" onclick="goToScene(1)">START</div>
+        </div>
+    </section>
+
+    <!-- SCENE 1 -->
+    <section class="scene offscreen-right" id="scene-1">
+        <div class="sketch-frame" style="position:relative;">
+
+            <div class="option-list-vertical">
+                <div class="option-box" onclick="chooseTeeth('running')">
+                    <img src="img/sink_running.png" style="width:60px;height:auto;"><br/>
+                    LEAVE WATER RUNNING
+                </div>
+                <div class="option-box" onclick="chooseTeeth('off')">
+                    <img src="img/sink_off.png" style="width:60px;height:auto;"><br/>
+                    TURN WATER OFF
+                </div>
+            </div>
+
+            <div class="bg-area">
+                <img src="img/sink_running.png" style="max-width:100%;height:auto;" alt="Bathroom sink">
+            </div>
+
+            <div class="boy-area">
+                <img src="img/boy_brush.png" style="max-width:100%;height:auto;" alt="Boy brushing teeth confused"><br/>
+                (Confused face)
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <div class="small-hint">
+                Pick what he should do while brushing.
+            </div>
+        </div>
+    </section>
+
+    <!-- SCENE 2 -->
+    <section class="scene offscreen-right" id="scene-2">
+        <div class="label-top">Which light should he use?</div>
+
+        <div class="bulb-row">
+            <div class="bulb-choice" onclick="chooseBulb('fluorescent')">
+                <img src="img/bulb_cfl.png" alt="Fluorescent bulb"><br/>
+                FLUORESCENT
+            </div>
+            <div class="bulb-choice" onclick="chooseBulb('LED')">
+                <img src="img/bulb_led.png" alt="LED bulb"><br/>
+                LED
+            </div>
+        </div>
+
+        <div class="sketch-frame">
+            <div class="bg-area">
+                <img src="img/boy_switch.png" style="max-width:100%;height:auto;" alt="Boy reaching for light switch">
+            </div>
+            <div class="boy-area">
+                Switching lights...
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <div class="small-hint">
+                Tap one bulb.
+            </div>
+        </div>
+    </section>
+
+    <!-- SCENE 3 -->
+    <section class="scene offscreen-right" id="scene-3">
+        <div class="label-top">Phone is charged. What now?</div>
+
+        <div class="sketch-frame">
+            <div class="charger-split">
+                <div class="half-panel" onclick="chooseCharger('unplug')">
+                    <img src="img/charger_unplug.png" alt="Unplug charger">
+                    <div class="option-dot-box">UNPLUG</div>
+                </div>
+
+                <div class="half-panel" onclick="chooseCharger('leave')">
+                    <img src="img/charger_leave.png" alt="Charger left plugged in">
+                    <div class="option-dot-box">LEAVE IT</div>
+                </div>
+            </div>
+
+            <div class="boy-area" style="align-self:flex-end;">
+                <img src="img/boy_ready.png" style="max-width:100%;height:auto;" alt="Boy ready for school"><br/>
+                Backpack + phone
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <div class="small-hint">
+                Vampire power?
+            </div>
+        </div>
+    </section>
+
+    <!-- SCENE 4 -->
+    <section class="scene offscreen-right" id="scene-4">
+        <div class="label-top">How will he go?</div>
+
+        <div class="thought-wrapper">
+            <div class="thought-cloud">
+                <div class="transport-col" onclick="chooseTransport('bus')">
+                    <img src="img/bus.png" alt="Bus with passengers">
+                    <div class="option-dot-box">TAKE BUS</div>
+                </div>
+                <div class="transport-col" onclick="chooseTransport('car')">
+                    <img src="img/car.png" alt="Car with only him">
+                    <div class="option-dot-box">DRIVE CAR</div>
+                </div>
+            </div>
+
+            <div class="boy-small">
+                <img src="img/boy_think.png" alt="Boy thinking"><br/>
+                thinking...
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <div class="small-hint">Tap one option in his thought bubble.</div>
+        </div>
+    </section>
+
+    <!-- SCENE 5 -->
+    <section class="scene offscreen-right" id="scene-5">
+        <div class="label-top">Your Day Choices</div>
+
+        <div class="summary-grid">
+            <div class="summary-card" id="sum-teeth">
+                <div><strong>Teeth / Water</strong></div>
+                <div class="checkmark" id="sum-teeth-mark">?</div>
+                <div id="sum-teeth-text" style="font-size:0.7rem;"></div>
+            </div>
+
+            <div class="summary-card" id="sum-bulb">
+                <div><strong>Light Bulb</strong></div>
+                <div class="checkmark" id="sum-bulb-mark">?</div>
+                <div id="sum-bulb-text" style="font-size:0.7rem;"></div>
+            </div>
+
+            <div class="summary-card" id="sum-charger">
+                <div><strong>Charger</strong></div>
+                <div class="checkmark" id="sum-charger-mark">?</div>
+                <div id="sum-charger-text" style="font-size:0.7rem;"></div>
+            </div>
+
+            <div class="summary-card" id="sum-transport">
+                <div><strong>Transport</strong></div>
+                <div class="checkmark" id="sum-transport-mark">?</div>
+                <div id="sum-transport-text" style="font-size:0.7rem;"></div>
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <div class="main-button" onclick="goToFacts()">
+                SEE HOW MUCH ENERGY YOU SAVED
+            </div>
+        </div>
+    </section>
+
+    <!-- SCENE 6 -->
+    <section class="scene offscreen-right" id="scene-6">
+        <div class="label-top">What your choices mean</div>
+
+        <div class="fact-list">
+            <div class="fact-card">
+                <div class="fact-title">
+                    <span>BRUSHING TEETH</span>
+                    <span style="font-size:0.7rem;">(water)</span>
+                </div>
+                <div class="fact-your-choice" id="fact-teeth-choice">
+                    You chose: ...
+                </div>
+                <div class="fact-impact" id="fact-teeth-impact">
+                    Saves about ____ per day.
+                </div>
+            </div>
+
+            <div class="fact-card">
+                <div class="fact-title">
+                    <span>LIGHTING</span>
+                    <span style="font-size:0.7rem;">(bulb)</span>
+                </div>
+                <div class="fact-your-choice" id="fact-bulb-choice">
+                    You chose: ...
+                </div>
+                <div class="fact-impact" id="fact-bulb-impact">
+                    LED can use way less energy than older bulbs.
+                </div>
+            </div>
+
+            <div class="fact-card">
+                <div class="fact-title">
+                    <span>CHARGER</span>
+                    <span style="font-size:0.7rem;">(plug)</span>
+                </div>
+                <div class="fact-your-choice" id="fact-charger-choice">
+                    You chose: ...
+                </div>
+                <div class="fact-impact" id="fact-charger-impact">
+                    Unplugging stops standby power use.
+                </div>
+            </div>
+
+            <div class="fact-card">
+                <div class="fact-title">
+                    <span>TRANSPORT</span>
+                    <span style="font-size:0.7rem;">(trip)</span>
+                </div>
+                <div class="fact-your-choice" id="fact-transport-choice">
+                    You chose: ...
+                </div>
+                <div class="fact-impact" id="fact-transport-impact">
+                    Shared rides can reduce CO₂ per person.
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <div class="main-button" onclick="goToScene(7)">
+                CONTINUE
+            </div>
+        </div>
+    </section>
+
+    <!-- SCENE 7 -->
+    <section class="scene offscreen-right" id="scene-7">
+        <div class="ending-wrapper">
+            <div class="ending-boy">
+                <img src="img/boy_walk.png" alt="Boy walking happy">
+                <br/>Heading out!
+            </div>
+
+            <div>
+                <div class="ending-quote" id="final-quote">
+                    "QUOTE GOES HERE."
+                </div>
+                <div class="ending-sub">
+                    — Your energy future starts with small choices
+                </div>
+            </div>
+
+            <div class="inline-buttons">
+                <div class="main-button" onclick="restartGame()">
+                    PLAY AGAIN
+                </div>
+                <div class="main-button" onclick="shareGame()">
+                    SHARE
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    const choices = {
+        teethWater: null,
+        lightBulb: null,
+        charger: null,
+        transport: null
+    };
+
+    let currentScene = 0;
+
+    function goToScene(n) {
+        const currEl = document.getElementById(`scene-${currentScene}`);
+        const nextEl = document.getElementById(`scene-${n}`);
+        if (!nextEl) return;
+
+        currEl.classList.remove('active');
+        currEl.classList.remove('offscreen-right');
+        currEl.classList.add('offscreen-left');
+
+        nextEl.classList.remove('offscreen-left');
+        nextEl.classList.add('offscreen-right');
+        nextEl.offsetHeight;
+        nextEl.classList.remove('offscreen-right');
+        nextEl.classList.add('active');
+
+        currentScene = n;
+    }
+
+    function chooseTeeth(option) {
+        choices.teethWater = option;
+        goToScene(2);
+    }
+
+    function chooseBulb(option) {
+        choices.lightBulb = option;
+        goToScene(3);
+    }
+
+    function chooseCharger(option) {
+        choices.charger = option;
+        goToScene(4);
+    }
+
+    function chooseTransport(option) {
+        choices.transport = option;
+        fillSummary();
+        goToScene(5);
+    }
+
+    function fillSummary() {
+        const goodAnswers = {
+            teethWater: "off",
+            lightBulb: "LED",
+            charger: "unplug",
+            transport: "bus"
+        };
+
+        function mark(idPrefix, chosen, goodKey) {
+            const markEl = document.getElementById(idPrefix + '-mark');
+            const textEl = document.getElementById(idPrefix + '-text');
+
+            if (!chosen) {
+                markEl.textContent = "?";
+                textEl.textContent = "No choice??";
+                return;
+            }
+
+            const isGood = (chosen === goodAnswers[goodKey]);
+            markEl.textContent = isGood ? "✅" : "❌";
+            textEl.textContent = "You chose: " + chosen.toUpperCase();
+        }
+
+        mark('sum-teeth', choices.teethWater, 'teethWater');
+        mark('sum-bulb', choices.lightBulb, 'lightBulb');
+        mark('sum-charger', choices.charger, 'charger');
+        mark('sum-transport', choices.transport, 'transport');
+    }
+
+    function goToFacts() {
+        document.getElementById('fact-teeth-choice').textContent =
+            "You chose: " + (choices.teethWater || "—");
+        document.getElementById('fact-bulb-choice').textContent =
+            "You chose: " + (choices.lightBulb || "—");
+        document.getElementById('fact-charger-choice').textContent =
+            "You chose: " + (choices.charger || "—");
+        document.getElementById('fact-transport-choice').textContent =
+            "You chose: " + (choices.transport || "—");
+
+        goToScene(6);
+    }
+
+    function restartGame() {
+        choices.teethWater = null;
+        choices.lightBulb = null;
+        choices.charger = null;
+        choices.transport = null;
+
+        for (let i = 0; i <= 7; i++) {
+            const s = document.getElementById(`scene-${i}`);
+            if (!s) continue;
+            s.classList.remove('active','offscreen-left','offscreen-right');
+            if (i === 0) {
+                s.classList.add('active');
+            } else {
+                s.classList.add('offscreen-right');
+            }
+        }
+        currentScene = 0;
+    }
+
+    function shareGame() {
+        alert("Share link copied (placeholder).");
+    }
+</script>
+
+</body>
+</html>
+
